@@ -18,7 +18,7 @@ const quests = [
     description: 'Master the art of variables',
     icon: <Variable className="w-6 h-6" />,
     component: VariableQuest,
-    color: 'from-yellow-700 to-yellow-900',
+    color: 'from-yellow-700 to-yellow-1000',
     requiredLevel: 1,
   },
   {
@@ -27,7 +27,7 @@ const quests = [
     description: 'Navigate the waters of iteration',
     icon: <Repeat className="w-6 h-6" />,
     component: LoopQuest,
-    color: 'from-blue-700 to-blue-900',
+    color: 'from-blue-700 to-blue-1000',
     requiredLevel: 2,
   },
   {
@@ -82,10 +82,10 @@ export default function CodeQuest() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-300">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-gray-300">
       <header className="bg-gray-900 p-4 flex justify-between items-center shadow-lg">
         <h1 className="text-2xl font-bold flex items-center text-yellow-700">
-          <Gamepad2 className="mr-2" /> Gamified
+          <Gamepad2 className="mr-2" /> GAMIFIED
         </h1>
         <div className="flex items-center space-x-4">
           <Badge variant="secondary" className="flex items-center bg-gray-800 text-yellow-600">
@@ -103,7 +103,7 @@ export default function CodeQuest() {
       </header>
 
       <main className="container mx-auto p-4">
-        <h2 className="text-3xl font-bold mb-6 text-yellow-700">Quest Map</h2>
+        <h2 className="text-3xl font-bold mb-6 text-yellow-600">Quest Map</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quests.map((quest, index) => (
             <motion.div
