@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Gamepad2, Trophy, Code, Zap, Variable, Repeat, Code2, Database, GitBranch, Layers, Clock, Coins, Star } from 'lucide-react'
+import { getUserProfile, updateUserStats, getQuests, completeQuest } from '@/services/api'
 
 const quests = [
   {
@@ -32,29 +33,29 @@ const quests = [
   },
   {
     id: 'functions',
-    name: 'Function Falls',
-    description: 'Harness the power of functions',
+    name: 'Function Fortress',
+    description: 'Build your function fortress',
     icon: <Code2 className="w-6 h-6" />,
     component: FunctionQuest,
-    color: 'from-yellow-800 to-blue-800',
+    color: 'from-green-700 to-green-1000',
     requiredLevel: 3,
   },
   {
-    id: 'dataStructures',
-    name: 'Data Structure Dungeon',
-    description: 'Explore the depths of data structures',
+    id: 'arrays',
+    name: 'Array Archipelago',
+    description: 'Explore the islands of data structures',
     icon: <Database className="w-6 h-6" />,
-    component: DataStructureQuest,
-    color: 'from-blue-800 to-yellow-800',
+    component: ArrayQuest,
+    color: 'from-purple-700 to-purple-1000',
     requiredLevel: 4,
   },
   {
-    id: 'algorithms',
-    name: 'Algorithm Archipelago',
-    description: 'Conquer the islands of algorithms',
-    icon: <GitBranch className="w-6 h-6" />,
-    component: AlgorithmQuest,
-    color: 'from-yellow-900 to-blue-900',
+    id: 'objects',
+    name: 'Object Oasis',
+    description: 'Discover the power of objects',
+    icon: <Layers className="w-6 h-6" />,
+    component: ObjectQuest,
+    color: 'from-red-700 to-red-1000',
     requiredLevel: 5,
   },
 ]
@@ -67,31 +68,61 @@ export default function CodeQuest() {
     coins: 0,
     character: '/placeholder.svg?height=64&width=64',
   })
+  const [availableQuests, setAvailableQuests] = useState([])
 
-  const updateUserStats = (expGain, coinGain) => {
-    setUserStats(prev => {
-      const newExp = prev.exp + expGain
-      const newLevel = Math.floor(newExp / 100) + 1
-      return {
-        ...prev,
-        level: newLevel,
-        exp: newExp % 100,
-        coins: prev.coins + coinGain,
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const profile = await getUserProfile()
+        setUserStats(profile)
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
       }
-    })
+    }
+
+    const fetchQuests = async () => {
+      try {
+        const fetchedQuests = await getQuests()
+        setAvailableQuests(fetchedQuests)
+      } catch (error) {
+        console.error('Error fetching quests:', error)
+      }
+    }
+
+    fetchUserProfile()
+    fetchQuests()
+  }, [])
+
+  const handleUpdateUserStats = async (expGain, coinGain) => {
+    try {
+      const updatedUser = await updateUserStats(expGain, coinGain)
+      setUserStats(updatedUser)
+    } catch (error) {
+      console.error('Error updating user stats:', error)
+    }
+  }
+
+  const handleCompleteQuest = async (questId) => {
+    try {
+      const result = await completeQuest(questId)
+      setUserStats(result.user)
+      // You might want to update the available quests or show a success message here
+    } catch (error) {
+      console.error('Error completing quest:', error)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-gray-300">
       <header className="bg-gray-900 p-4 flex justify-between items-center shadow-lg">
         <h1 className="text-2xl font-bold flex items-center text-yellow-700">
-          <Gamepad2 className="mr-2" /> GAMIFIED
+          <Gamepad2 className="mr-2" /> CodeQuest
         </h1>
         <div className="flex items-center space-x-4">
           <Badge variant="secondary" className="flex items-center bg-gray-800 text-yellow-600">
             <Star className="mr-1 h-4 w-4" /> Level {userStats.level}
           </Badge>
-          <Progress value={userStats.exp} className="w-24 bg-gray-700" indicatorClassName="bg-yellow-700" />
+          <Progress value={userStats.exp % 100} className="w-24 bg-gray-700" indicatorClassName="bg-yellow-700" />
           <Badge variant="secondary" className="flex items-center bg-gray-800 text-yellow-600">
             <Coins className="mr-1 h-4 w-4" /> {userStats.coins}
           </Badge>
@@ -148,7 +179,10 @@ export default function CodeQuest() {
                   <CardDescription className="text-gray-400">{currentQuest.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <currentQuest.component updateUserStats={updateUserStats} />
+                  <currentQuest.component 
+                    updateUserStats={handleUpdateUserStats} 
+                    completeQuest={() => handleCompleteQuest(currentQuest.id)}
+                  />
                 </CardContent>
               </Card>
             </motion.div>
@@ -156,46 +190,14 @@ export default function CodeQuest() {
         </AnimatePresence>
       </main>
 
-      <footer className="bg-gray-900 p-4 text-center shadow-lg">
-        <Tabs defaultValue="inventory">
-          <TabsList className="bg-gray-800">
-            <TabsTrigger value="inventory" className="data-[state=active]:bg-gray-700 data-[state=active]:text-yellow-600">Inventory</TabsTrigger>
-            <TabsTrigger value="shop" className="data-[state=active]:bg-gray-700 data-[state=active]:text-yellow-600">Shop</TabsTrigger>
-            <TabsTrigger value="achievements" className="data-[state=active]:bg-gray-700 data-[state=active]:text-yellow-600">Achievements</TabsTrigger>
-          </TabsList>
-          <TabsContent value="inventory" className="bg-gray-800 p-4 rounded-b-lg">
-            <h3 className="text-xl font-bold mb-2 text-yellow-700">Your Items</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-gray-700 w-12 h-12 rounded-md border border-gray-600"></div>
-              ))}
-            </div>
-          </TabsContent>
-          <TabsContent value="shop" className="bg-gray-800 p-4 rounded-b-lg">
-            <h3 className="text-xl font-bold mb-2 text-yellow-700">Shop</h3>
-            <p className="text-gray-400">Spend your coins on power-ups and cosmetics!</p>
-          </TabsContent>
-          <TabsContent value="achievements" className="bg-gray-800 p-4 rounded-b-lg">
-            <h3 className="text-xl font-bold mb-2 text-yellow-700">Achievements</h3>
-            <div className="space-y-2">
-              <Badge variant="outline" className="w-full justify-start border-yellow-700 text-yellow-600">
-                <Trophy className="mr-2" /> Code Ninja
-              </Badge>
-              <Badge variant="outline" className="w-full justify-start border-yellow-700 text-yellow-600">
-                <Trophy className="mr-2" /> Bug Squasher
-              </Badge>
-              <Badge variant="outline" className="w-full justify-start border-yellow-700 text-yellow-600">
-                <Trophy className="mr-2" /> Algorithm Ace
-              </Badge>
-            </div>
-          </TabsContent>
-        </Tabs>
+      <footer className="bg-gray-900 mt-12 py-6 text-center">
+        <p className="text-gray-500">&copy; 2024 CodeQuest. All rights reserved.</p>
       </footer>
     </div>
   )
 }
 
-function VariableQuest({ updateUserStats }) {
+function VariableQuest({ updateUserStats, completeQuest }) {
   const [answer, setAnswer] = useState('')
   const [feedback, setFeedback] = useState('')
 
@@ -203,6 +205,7 @@ function VariableQuest({ updateUserStats }) {
     if (answer.toLowerCase() === 'let' || answer.toLowerCase() === 'const') {
       setFeedback('Correct! You\'ve mastered variable declaration!')
       updateUserStats(20, 10)
+      completeQuest()
     } else {
       setFeedback('Not quite. Try again, adventurer!')
     }
@@ -225,179 +228,126 @@ function VariableQuest({ updateUserStats }) {
   )
 }
 
-function LoopQuest({ updateUserStats }) {
-  const [code, setCode] = useState('')
-  const [output, setOutput] = useState('')
+function LoopQuest({ updateUserStats, completeQuest }) {
+  const [answer, setAnswer] = useState('')
+  const [feedback, setFeedback] = useState('')
 
-  const runCode = () => {
-    try {
-      // eslint-disable-next-line no-new-func
-      const loopFunction = new Function(`
-        let treasures = [];
-        ${code}
-        return treasures;
-      `)
-      const result = loopFunction()
-      setOutput(JSON.stringify(result))
-      if (result.join(',') === '1,2,3,4,5') {
-        setOutput('Congratulations! You\'ve collected all the treasures!')
-        updateUserStats(30, 15)
-      }
-    } catch (error) {
-      setOutput('Oh no! Your code encountered an error. Try again, brave coder!')
+  const checkAnswer = () => {
+    if (answer.toLowerCase().includes('for') || answer.toLowerCase().includes('while')) {
+      setFeedback('Excellent! You\'ve mastered the art of loops!')
+      updateUserStats(30, 15)
+      completeQuest()
+    } else {
+      setFeedback('Not quite there. Keep trying!')
     }
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-lg text-gray-300">Use a loop to collect 5 treasures and add them to the 'treasures' array.</p>
+      <p className="text-lg text-gray-300">Write a loop that counts from 1 to 10.</p>
       <div className="space-y-2">
-        <Label htmlFor="code" className="text-yellow-600">Your Magical Loop:</Label>
         <Input
-          id="code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="for (let i = 1; i <= 5; i++) { treasures.push(i); }"
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder="Enter your code"
           className="font-mono bg-gray-800 border-gray-700 text-yellow-600 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+        <Button onClick={checkAnswer} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Submit Answer</Button>
       </div>
-      <Button onClick={runCode} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Cast Your Spell</Button>
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <p className="font-semibold text-blue-500">Quest Log:</p>
-        <pre className="font-mono text-yellow-600">{output}</pre>
-      </div>
+      {feedback && <p className="text-sm font-medium text-blue-500">{feedback}</p>}
     </div>
   )
 }
 
-function FunctionQuest({ updateUserStats }) {
-  const [code, setCode] = useState('')
-  const [output, setOutput] = useState('')
+function FunctionQuest({ updateUserStats, completeQuest }) {
+  const [answer, setAnswer] = useState('')
+  const [feedback, setFeedback] = useState('')
 
-  const runCode = () => {
-    try {
-      // eslint-disable-next-line no-new-func
-      const userFunction = new Function(`
-        ${code}
-        return castFireball(3);
-      `)
-      const result = userFunction()
-      setOutput(result.toString())
-      if (result === 'Fireball deals 9 damage!') {
-        setOutput('Impressive spell casting! Your fireball is powerful!')
-        updateUserStats(40, 20)
-      }
-    } catch (error) {
-      setOutput('Your spell fizzled! Check your incantation and try again.')
+  const checkAnswer = () => {
+    if (answer.toLowerCase().includes('function') || answer.toLowerCase().includes('=>')) {
+      setFeedback('Great job! You\'ve constructed a solid function!')
+      updateUserStats(40, 20)
+      completeQuest()
+    } else {
+      setFeedback('Almost there! Try again.')
     }
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-lg text-gray-300">Create a function called "castFireball" that takes a power level and returns the damage dealt.</p>
+      <p className="text-lg text-gray-300">Define a function that adds two numbers.</p>
       <div className="space-y-2">
-        <Label htmlFor="function-code" className="text-yellow-600">Your Spell:</Label>
         <Input
-          id="function-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="function  castFireball(power) { return `Fireball deals ${power * 3} damage!`; }"
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder="Enter your code"
           className="font-mono bg-gray-800 border-gray-700 text-yellow-600 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+        <Button onClick={checkAnswer} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Submit Answer</Button>
       </div>
-      <Button onClick={runCode} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Cast Fireball</Button>
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <p className="font-semibold text-blue-500">Spell Effect:</p>
-        <pre className="font-mono text-yellow-600">{output}</pre>
-      </div>
+      {feedback && <p className="text-sm font-medium text-blue-500">{feedback}</p>}
     </div>
   )
 }
 
-function DataStructureQuest({ updateUserStats }) {
-  const [code, setCode] = useState('')
-  const [output, setOutput] = useState('')
+function ArrayQuest({ updateUserStats, completeQuest }) {
+  const [answer, setAnswer] = useState('')
+  const [feedback, setFeedback] = useState('')
 
-  const runCode = () => {
-    try {
-      // eslint-disable-next-line no-new-func
-      const userFunction = new Function(`
-        ${code}
-        return inventory.weapons[0];
-      `)
-      const result = userFunction()
-      setOutput(result)
-      if (result === 'Sword') {
-        setOutput('Well done! Your inventory is properly organized.')
-        updateUserStats(50, 25)
-      }
-    } catch (error) {
-      setOutput('Your inventory is in chaos! Reorganize and try again.')
+  const checkAnswer = () => {
+    if (answer.includes('[') && answer.includes(']')) {
+      setFeedback('Fantastic! You\'ve mastered array creation!')
+      updateUserStats(50, 25)
+      completeQuest()
+    } else {
+      setFeedback('Not quite. Remember the syntax for arrays!')
     }
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-lg text-gray-300">Create an object called "inventory" with an array of "weapons" including a "Sword".</p>
+      <p className="text-lg text-gray-300">Create an array containing the first three prime numbers.</p>
       <div className="space-y-2">
-        <Label htmlFor="object-code" className="text-yellow-600">Your Inventory:</Label>
         <Input
-          id="object-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="const inventory = { weapons: ['Sword', 'Bow', 'Axe'] };"
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder="Enter your code"
           className="font-mono bg-gray-800 border-gray-700 text-yellow-600 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+        <Button onClick={checkAnswer} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Submit Answer</Button>
       </div>
-      <Button onClick={runCode} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Check Inventory</Button>
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <p className="font-semibold text-blue-500">Inventory Check:</p>
-        <pre className="font-mono text-yellow-600">{output}</pre>
-      </div>
+      {feedback && <p className="text-sm font-medium text-blue-500">{feedback}</p>}
     </div>
   )
 }
 
-function AlgorithmQuest({ updateUserStats }) {
-  const [code, setCode] = useState('')
-  const [output, setOutput] = useState('')
+function ObjectQuest({ updateUserStats, completeQuest }) {
+  const [answer, setAnswer] = useState('')
+  const [feedback, setFeedback] = useState('')
 
-  const runCode = () => {
-    try {
-      // eslint-disable-next-line no-new-func
-      const userFunction = new Function(`
-        ${code}
-        return findTreasure([3, 7, 2, 9, 1]);
-      `)
-      const result = userFunction()
-      setOutput(result.toString())
-      if (result === 9) {
-        setOutput('Eureka! You\'ve found the most valuable treasure!')
-        updateUserStats(60, 30)
-      }
-    } catch (error) {
-      setOutput('Your treasure map led you astray! Recalibrate and try again.')
+  const checkAnswer = () => {
+    if (answer.includes('{') &&   answer.includes('}') && answer.includes(':')) {
+      setFeedback('Excellent work! You\'ve created a proper object!')
+      updateUserStats(60, 30)
+      completeQuest()
+    } else {
+      setFeedback('Close, but not quite. Remember the object syntax!')
     }
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-lg text-gray-300">Write a function called "findTreasure" that finds the most valuable treasure (highest number) in an array.</p>
+      <p className="text-lg text-gray-300">Create an object representing a book with properties for title and author.</p>
       <div className="space-y-2">
-        <Label htmlFor="algorithm-code" className="text-yellow-600">Your Treasure Map:</Label>
         <Input
-          id="algorithm-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="function findTreasure(arr) { return Math.max(...arr); }"
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder="Enter your code"
           className="font-mono bg-gray-800 border-gray-700 text-yellow-600 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
+        <Button onClick={checkAnswer} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Submit Answer</Button>
       </div>
-      <Button onClick={runCode} className="bg-blue-700 hover:bg-blue-600 text-yellow-600 font-bold transition-all duration-200 ease-in-out transform hover:scale-105">Search for Treasure</Button>
-      <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <p className="font-semibold text-blue-500">Treasure Hunter's Log:</p>
-        <pre className="font-mono text-yellow-600">{output}</pre>
-      </div>
+      {feedback && <p className="text-sm font-medium text-blue-500">{feedback}</p>}
     </div>
   )
 }
